@@ -47,7 +47,7 @@ KERNEL_UIMAGE		?= $(BINARIES_PATH)/uImage
 # Targets
 ################################################################################
 TARGET_DEPS := buildroot linux optee-os
-TARGET_CLEAN := buildroot-clean linux-clean optee-os-clean check-clean
+TARGET_CLEAN := buildroot-clean linux-clean optee-os-clean
 
 all: $(TARGET_DEPS)
 
