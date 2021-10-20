@@ -17,5 +17,5 @@ Also install the AOSP Repo tool. Instructions can be found [here](https://source
 
 ## Building
 
-To download the necessary sources and build OP-TEE, it is recommended to create a script with the contents of [build_kvm.sh](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/build_kvm.sh) and place it in a directory of your choice and execute it. The script will download several repositories includng this one. It will then start the make process.
+To download the necessary sources and build OP-TEE, it is recommended to create a script with the contents of [build_for_kvm.sh](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/build_for_kvm.sh) and place it in a directory of your choice and execute it. The script will download several repositories includng this one. It will then start the make process.
 
