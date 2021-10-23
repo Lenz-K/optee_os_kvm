@@ -128,9 +128,10 @@ __weak void init_sec_mon(unsigned long nsec_entry)
 	/* Initialize secure monitor */
 	nsec_ctx = sm_get_nsec_ctx();
 	nsec_ctx->mon_lr = nsec_entry;
-	nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
-	if (nsec_entry & 1)
-		nsec_ctx->mon_spsr |= CPSR_T;
+	/* This does not compile */
+	//nsec_ctx->mon_spsr = CPSR_MODE_SVC | CPSR_I;
+	//if (nsec_entry & 1)
+	//	nsec_ctx->mon_spsr |= CPSR_T;
 }
 #endif
 
@@ -141,8 +142,9 @@ static void init_vfp_nsec(void)
 #else
 static void init_vfp_nsec(void)
 {
+	/* This does not compile */
 	/* Normal world can use CP10 and CP11 (SIMD/VFP) */
-	write_nsacr(read_nsacr() | NSACR_CP10 | NSACR_CP11);
+	//write_nsacr(read_nsacr() | NSACR_CP10 | NSACR_CP11);
 }
 #endif
 

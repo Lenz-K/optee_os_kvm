@@ -1,48 +1,153 @@
+// SPDX-License-Identifier: BSD-2-Clause
+/*
+ * Copyright (c) 2016-2020, Linaro Limited
+ * Copyright (c) 2014, STMicroelectronics International N.V.
+ */
+
+#include <arm.h>
 #include <console.h>
-#include <drivers/serial8250_uart.h>
-#include <kernel/generic_boot.h>
+#include <drivers/gic.h>
+#include <drivers/pl011.h>
+#include <drivers/tzc400.h>
+#include <initcall.h>
+#include <keep.h>
+#include <kernel/boot.h>
+#include <kernel/interrupt.h>
+#include <kernel/misc.h>
 #include <kernel/panic.h>
-#include <kernel/pm_stubs.h>
+#include <kernel/tee_time.h>
+#include <mm/core_memprot.h>
 #include <mm/core_mmu.h>
 #include <platform_config.h>
+#include <sm/psci.h>
 #include <stdint.h>
-#include <tee/entry_fast.h>
-#include <tee/entry_std.h>
+#include <string.h>
+#include <trace.h>
 
-static void main_fiq(void)
+static struct gic_data gic_data __nex_bss;
+static struct pl011_data console_data __nex_bss;
+
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, CONSOLE_UART_BASE, PL011_REG_SIZE);
+#if defined(PLATFORM_FLAVOR_fvp)
+register_phys_mem(MEM_AREA_RAM_SEC, TZCDRAM_BASE, TZCDRAM_SIZE);
+#endif
+#if defined(PLATFORM_FLAVOR_qemu_virt)
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, SECRAM_BASE, SECRAM_COHERENT_SIZE);
+#endif
+#ifdef DRAM0_BASE
+register_ddr(DRAM0_BASE, DRAM0_SIZE);
+#endif
+#ifdef DRAM1_BASE
+register_ddr(DRAM1_BASE, DRAM1_SIZE);
+#endif
+
+#ifdef GIC_BASE
+
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, GICD_BASE, GIC_DIST_REG_SIZE);
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, GICC_BASE, GIC_DIST_REG_SIZE);
+
+void main_init_gic(void)
 {
-    panic();
+	vaddr_t gicc_base;
+	vaddr_t gicd_base;
+
+	gicc_base = (vaddr_t)phys_to_virt(GIC_BASE + GICC_OFFSET,
+					  MEM_AREA_IO_SEC, GIC_CPU_REG_SIZE);
+	gicd_base = (vaddr_t)phys_to_virt(GIC_BASE + GICD_OFFSET,
+					  MEM_AREA_IO_SEC, GIC_DIST_REG_SIZE);
+	if (!gicc_base || !gicd_base)
+		panic();
+
+#if defined(CFG_WITH_ARM_TRUSTED_FW)
+	/* On ARMv8, GIC configuration is initialized in ARM-TF */
+	gic_init_base_addr(&gic_data, gicc_base, gicd_base);
+#else
+	/* Initialize GIC */
+	gic_init(&gic_data, gicc_base, gicd_base);
+#endif
+	itr_init(&gic_data.chip);
 }
 
-static const struct thread_handlers handlers = {
-    .std_smc = tee_entry_std,
-    .fast_smc = tee_entry_fast,
-    .nintr = main_fiq,
-    .cpu_on = cpu_on_handler,
-    .cpu_off = pm_do_nothing,
-    .cpu_suspend = pm_do_nothing,
-    .cpu_resume = pm_do_nothing,
-    .system_off = pm_do_nothing,
-    .system_reset = pm_do_nothing,
-};
-
-const struct thread_handlers *generic_boot_get_handlers(void)
+#if !defined(CFG_WITH_ARM_TRUSTED_FW)
+void main_secondary_init_gic(void)
 {
-    return &handlers;
+	gic_cpu_init(&gic_data);
 }
+#endif
 
-/*
- * Register the physical memory area for peripherals etc. Here we are
- * registering the UART console.
- */
-register_phys_mem(MEM_AREA_IO_NSEC, CONSOLE_UART_BASE, SERIAL8250_UART_REG_SIZE);
+#endif
 
-static struct serial8250_uart_data console_data;
+void itr_core_handler(void)
+{
+	gic_it_handle(&gic_data);
+}
 
 void console_init(void)
 {
-    serial8250_uart_init(&console_data, CONSOLE_UART_BASE,
-                         CONSOLE_UART_CLK_IN_HZ, CONSOLE_BAUDRATE);
-    register_serial_console(&console_data.chip);
+	pl011_init(&console_data, CONSOLE_UART_BASE, CONSOLE_UART_CLK_IN_HZ,
+		   CONSOLE_BAUDRATE);
+	register_serial_console(&console_data.chip);
 }
+
+#if defined(IT_CONSOLE_UART) && \
+	!(defined(CFG_WITH_ARM_TRUSTED_FW) && defined(CFG_ARM_GICV3))
+/*
+ * This cannot be enabled with TF-A and GICv3 because TF-A then need to
+ * assign the interrupt number of the UART to OP-TEE (S-EL1). Currently
+ * there's no way of TF-A to know which interrupts that OP-TEE will serve.
+ * If TF-A doesn't assign the interrupt we're enabling below to OP-TEE it
+ * will hang in EL3 since the interrupt will just be delivered again and
+ * again.
+ */
+static enum itr_return console_itr_cb(struct itr_handler *h __unused)
+{
+	struct serial_chip *cons = &console_data.chip;
+
+	while (cons->ops->have_rx_data(cons)) {
+		int ch __maybe_unused = cons->ops->getchar(cons);
+
+		DMSG("cpu %zu: got 0x%x", get_core_pos(), ch);
+	}
+	return ITRR_HANDLED;
+}
+
+static struct itr_handler console_itr = {
+	.it = IT_CONSOLE_UART,
+	.flags = ITRF_TRIGGER_LEVEL,
+	.handler = console_itr_cb,
+};
+DECLARE_KEEP_PAGER(console_itr);
+
+static TEE_Result init_console_itr(void)
+{
+	itr_add(&console_itr);
+	itr_enable(IT_CONSOLE_UART);
+	return TEE_SUCCESS;
+}
+driver_init(init_console_itr);
+#endif
+
+#ifdef CFG_TZC400
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, TZC400_BASE, TZC400_REG_SIZE);
+
+static TEE_Result init_tzc400(void)
+{
+	void *va;
+
+	DMSG("Initializing TZC400");
+
+	va = phys_to_virt(TZC400_BASE, MEM_AREA_IO_SEC, TZC400_REG_SIZE);
+	if (!va) {
+		EMSG("TZC400 not mapped");
+		panic();
+	}
+
+	tzc_init((vaddr_t)va);
+	tzc_dump_state();
+
+	return TEE_SUCCESS;
+}
+
+service_init(init_tzc400);
+#endif /*CFG_TZC400*/
 
