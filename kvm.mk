@@ -46,8 +46,8 @@ KERNEL_UIMAGE		?= $(BINARIES_PATH)/uImage
 ################################################################################
 # Targets
 ################################################################################
-TARGET_DEPS := buildroot linux optee-os
-TARGET_CLEAN := buildroot-clean linux-clean optee-os-clean
+TARGET_DEPS := buildroot optee-os
+TARGET_CLEAN := buildroot-clean optee-os-clean
 
 all: $(TARGET_DEPS)
 
@@ -57,35 +57,6 @@ $(BINARIES_PATH):
 	mkdir -p $@
 
 include toolchain.mk
-
-################################################################################
-# Linux kernel
-################################################################################
-LINUX_DEFCONFIG_COMMON_ARCH := arm64
-LINUX_DEFCONFIG_COMMON_FILES := \
-		$(LINUX_PATH)/arch/arm64/configs/defconfig
-
-linux-defconfig: $(LINUX_PATH)/.config
-
-LINUX_COMMON_FLAGS += ARCH=arm64 Image scripts_gdb
-
-linux: linux-common
-	mkdir -p $(BINARIES_PATH)
-	ln -sf $(LINUX_PATH)/arch/arm64/boot/Image $(BINARIES_PATH)
-
-linux-modules: linux
-	$(MAKE) -C $(LINUX_PATH) $(LINUX_COMMON_FLAGS) modules
-	$(MAKE) -C $(LINUX_PATH) $(LINUX_COMMON_FLAGS) INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$(MODULE_OUTPUT) modules_install
-
-linux-defconfig-clean: linux-defconfig-clean-common
-
-LINUX_CLEAN_COMMON_FLAGS += ARCH=arm64
-
-linux-clean: linux-clean-common
-
-LINUX_CLEANER_COMMON_FLAGS += ARCH=arm64
-
-linux-cleaner: linux-cleaner-common
 
 ################################################################################
 # OP-TEE
