@@ -4,7 +4,6 @@
         <default remote="github" revision="master" />
 
         <!-- OP-TEE gits -->
-        <project path="optee_client"         name="OP-TEE/optee_client.git" />
         <project path="optee_os"             name="Lenz-K/optee_os_kvm.git" revision="plat-kvm"/>
         <project path="optee_test"           name="OP-TEE/optee_test.git" />
         <project path="build"                name="OP-TEE/build.git" />
