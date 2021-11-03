@@ -43,6 +43,12 @@ KERNEL_IMAGE		?= $(LINUX_PATH)/arch/arm64/boot/Image
 KERNEL_IMAGEGZ		?= $(LINUX_PATH)/arch/arm64/boot/Image.gz
 KERNEL_UIMAGE		?= $(BINARIES_PATH)/uImage
 
+# Load and entry addresses
+KERNEL_ENTRY		?= 0x40400000
+KERNEL_LOADADDR		?= 0x40400000
+ROOTFS_ENTRY		?= 0x44000000
+ROOTFS_LOADADDR		?= 0x44000000
+
 ################################################################################
 # Targets
 ################################################################################
