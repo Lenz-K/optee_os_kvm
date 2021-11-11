@@ -9,7 +9,7 @@ platform-cflags-debug-info = -gdwarf-2
 platform-aflags-debug-info = -gdwarf-2
 endif
 
-$(call force,CFG_WITH_ARM_TRUSTED_FW,n)
+$(call force,CFG_WITH_ARM_TRUSTED_FW,y)
 $(call force,CFG_GIC,y)
 $(call force,CFG_PL011,y)
 $(call force,CFG_SECURE_TIME_SOURCE_CNTPCT,y)
