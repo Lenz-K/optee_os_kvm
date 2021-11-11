@@ -33,7 +33,7 @@ LOCAL_FUNC ffa_msg_send_direct_resp , :
 
 .ffa_msg_loop:
 	/* Invoke SMC with caller provided parameters */
-	smc	#0
+	hvc	#0
 
 	/* Store the parameters as struct thread_smc_args on stack */
 	push	{r0-r7}
