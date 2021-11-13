@@ -48,7 +48,8 @@ UNWIND(	.cantunwind)
 	 */
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_CALL_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_std_smc_entry
 
@@ -60,7 +61,8 @@ UNWIND(	.cantunwind)
 	bl	thread_handle_fast_smc
 	pop	{r1-r8}
 	ldr	r0, =TEESMC_OPTEED_RETURN_CALL_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_fast_smc_entry
 
@@ -71,7 +73,8 @@ UNWIND(	.cantunwind)
 	bl	thread_check_canaries
 	bl	itr_core_handler
 	ldr	r0, =TEESMC_OPTEED_RETURN_FIQ_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_fiq_entry
 
@@ -82,7 +85,8 @@ UNWIND(	.cantunwind)
 	/* When cpu_on_handler() returns mmu is enabled */
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_ON_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_cpu_on_entry
 
@@ -92,7 +96,8 @@ UNWIND(	.cantunwind)
 	bl	thread_cpu_off_handler
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_OFF_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_cpu_off_entry
 
@@ -102,7 +107,8 @@ UNWIND(	.cantunwind)
 	bl	thread_cpu_suspend_handler
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_SUSPEND_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_cpu_suspend_entry
 
@@ -112,7 +118,8 @@ UNWIND(	.cantunwind)
 	bl	thread_cpu_resume_handler
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_RESUME_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_cpu_resume_entry
 
@@ -122,7 +129,8 @@ UNWIND(	.cantunwind)
 	bl	thread_system_off_handler
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_SYSTEM_OFF_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_system_off_entry
 
@@ -132,7 +140,8 @@ UNWIND(	.cantunwind)
 	bl	thread_system_reset_handler
 	mov	r1, r0
 	ldr	r0, =TEESMC_OPTEED_RETURN_SYSTEM_RESET_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC vector_system_reset_entry
 
@@ -178,7 +187,8 @@ UNWIND(	.cantunwind)
 	mov	r2, #0
 	mov	r3, #0
 	mov	r4, #0
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC thread_std_smc_entry
 
@@ -205,7 +215,8 @@ UNWIND(	.save	{r0, lr})
 	mov	r4, r0			/* Supply thread index */
 	ldr	r0, =TEESMC_OPTEED_RETURN_CALL_DONE
 	ldm	r5, {r1-r3}		/* Load rv[] into r0-r2 */
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 
 .thread_rpc_return:
@@ -237,6 +248,7 @@ FUNC thread_foreign_intr_exit , :
 	ldr	r1, =OPTEE_SMC_RETURN_RPC_FOREIGN_INTR
 	mov	r2, #0
 	mov	r3, #0
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC thread_foreign_intr_exit

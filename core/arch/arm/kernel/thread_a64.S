@@ -61,7 +61,8 @@ FUNC thread_resume , :
 END_FUNC thread_resume
 
 FUNC thread_smc , :
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	ret
 END_FUNC thread_smc
 
@@ -71,9 +72,11 @@ FUNC thread_smccc , :
 	mov	x8, x0
 	load_xregs x8, 0, 0, 7
 #ifdef CFG_CORE_SEL2_SPMC
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 #else
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 #endif
 	pop	x8, xzr
 	store_xregs x8, 0, 0, 7
@@ -351,7 +354,8 @@ el0_serror_a32:
 	.macro invalidate_branch_predictor
 		store_xregs sp, THREAD_CORE_LOCAL_X0, 0, 3
 		mov_imm	x0, SMCCC_ARCH_WORKAROUND_1
-		hvc	#0
+		ldr x29, =0x10000000
+	str x0, [x29]
 		load_xregs sp, THREAD_CORE_LOCAL_X0, 0, 3
 	.endm
 

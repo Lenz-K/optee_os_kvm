@@ -286,7 +286,8 @@ clear_nex_bss:
 	adr	x1, thread_vector_table
 	sub	x1, x1, x0
 	mov	x0, #TEESMC_OPTEED_RETURN_ENTRY_DONE
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 #endif
 END_FUNC _start

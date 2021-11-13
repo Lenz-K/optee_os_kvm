@@ -107,6 +107,7 @@ after_resume:
 	mov	r2, #0
 	mov	r3, #0
 	mov	r4, #0
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	b	.	/* SMC should not return */
 END_FUNC resume_springboard

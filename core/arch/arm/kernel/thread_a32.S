@@ -208,7 +208,8 @@ END_FUNC thread_save_state
 FUNC thread_smc , :
 	push	{r4-r7}
 UNWIND(	.save	{r4-r7})
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 	pop	{r4-r7}
 	bx	lr
 END_FUNC thread_smc
@@ -219,9 +220,11 @@ FUNC thread_smccc , :
 	push	{r0, lr}
 	ldm	r0, {r0-r7}
 #ifdef CFG_CORE_SEL2_SPMC
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 #else
-	hvc	#0
+	ldr x29, =0x10000000
+	str x0, [x29]
 #endif
 	pop	{r12, lr}
 	stm	r12, {r0-r7}
