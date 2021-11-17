@@ -57,6 +57,8 @@
 	.endm
 
 FUNC _start , :
+	ldr x29, =0x10000000
+	str x0, [x29]
 #if defined(CFG_CORE_SEL1_SPMC)
 	/*
 	 * With OP-TEE as SPMC at S-EL1 the SPMD (SPD_spmd) in TF-A passes

@@ -10,8 +10,8 @@ platform-aflags-debug-info = -gdwarf-2
 endif
 
 $(call force,CFG_WITH_ARM_TRUSTED_FW,y)
-$(call force,CFG_GIC,y)
-$(call force,CFG_PL011,y)
+$(call force,CFG_GIC,n)
+$(call force,CFG_PL011,n)
 $(call force,CFG_SECURE_TIME_SOURCE_CNTPCT,y)
 ifeq ($(CFG_CORE_TPM_EVENT_LOG),y)
 # NOTE: Below values for the TPM event log are implementation
@@ -40,6 +40,6 @@ CFG_SHMEM_START ?= 0x42000000
 CFG_SHMEM_SIZE  ?= 0x00200000
 # When Secure Data Path is enable, last MByte of TZDRAM is SDP test memory.
 CFG_TEE_SDP_MEM_SIZE ?= 0x00400000
-$(call force,CFG_DT,y)
+$(call force,CFG_DT,n)
 CFG_DTB_MAX_SIZE ?= 0x100000
 
