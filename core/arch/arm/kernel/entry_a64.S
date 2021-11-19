@@ -59,6 +59,8 @@
 FUNC _start , :
 	ldr x29, =0x10000000
 	str x0, [x29]
+	ldr	x0, =TEESMC_OPTEED_RETURN_OFF_DONE
+	hvc #0
 #if defined(CFG_CORE_SEL1_SPMC)
 	/*
 	 * With OP-TEE as SPMC at S-EL1 the SPMD (SPD_spmd) in TF-A passes
@@ -180,6 +182,8 @@ clear_nex_bss:
 
 	/* Enable Console */
 	bl	console_init
+	ldr x29, =0x10000000
+	str x0, [x29]
 
 #ifdef CFG_CORE_ASLR
 	mov	x0, x20
@@ -190,6 +194,8 @@ clear_nex_bss:
 
 	adr	x1, boot_mmu_config
 	bl	core_init_mmu_map
+	ldr x29, =0x10000000
+	str x0, [x29]
 
 #ifdef CFG_CORE_ASLR
 	/*
@@ -208,6 +214,8 @@ clear_nex_bss:
 	str	x6, [x5]
 	bl	relocate
 #endif
+	ldr x29, =0x10000000
+	str x0, [x29]
 
 	bl	__get_core_pos
 	bl	enable_mmu
@@ -219,6 +227,8 @@ clear_nex_bss:
 	 */
 	bl	console_init
 #endif
+	ldr x29, =0x10000000
+	str x0, [x29]
 
 #ifdef CFG_VIRTUALIZATION
 	/*
