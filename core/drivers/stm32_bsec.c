@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2017-2020, STMicroelectronics
+ * Copyright (c) 2017-2021, STMicroelectronics
  */
 
 #include <assert.h>
@@ -106,7 +106,7 @@
 #define BSEC_LOCK_PROGRAM		0x04
 
 /* Timeout when polling on status */
-#define BSEC_TIMEOUT_US			1000
+#define BSEC_TIMEOUT_US			10000
 
 #define BITS_PER_WORD		(CHAR_BIT * sizeof(uint32_t))
 
@@ -242,7 +242,7 @@ TEE_Result stm32_bsec_shadow_register(uint32_t otp_id)
 
 	result = power_up_safmem();
 	if (result)
-		return result;
+		goto out;
 
 	io_write32(bsec_base() + BSEC_OTP_CTRL_OFF, otp_id | BSEC_READ);
 
@@ -252,12 +252,13 @@ TEE_Result stm32_bsec_shadow_register(uint32_t otp_id)
 			break;
 
 	if (bsec_status() & BSEC_MODE_BUSY_MASK)
-		result = TEE_ERROR_GENERIC;
+		result = TEE_ERROR_BUSY;
 	else
 		result = check_no_error(otp_id, true /* check-disturbed */);
 
 	power_down_safmem();
 
+out:
 	bsec_unlock(exceptions);
 
 	return result;
@@ -338,7 +339,7 @@ TEE_Result stm32_bsec_program_otp(uint32_t value, uint32_t otp_id)
 
 	result = power_up_safmem();
 	if (result)
-		return result;
+		goto out;
 
 	io_write32(bsec_base() + BSEC_OTP_WRDATA_OFF, value);
 	io_write32(bsec_base() + BSEC_OTP_CTRL_OFF, otp_id | BSEC_WRITE);
@@ -348,13 +349,16 @@ TEE_Result stm32_bsec_program_otp(uint32_t value, uint32_t otp_id)
 		if (!(bsec_status() & BSEC_MODE_BUSY_MASK))
 			break;
 
-	if (bsec_status() & (BSEC_MODE_BUSY_MASK | BSEC_MODE_PROGFAIL_MASK))
-		result = TEE_ERROR_GENERIC;
+	if (bsec_status() & BSEC_MODE_BUSY_MASK)
+		result = TEE_ERROR_BUSY;
+	else if (bsec_status() & BSEC_MODE_PROGFAIL_MASK)
+		result = TEE_ERROR_BAD_PARAMETERS;
 	else
 		result = check_no_error(otp_id, true /* check-disturbed */);
 
 	power_down_safmem();
 
+out:
 	bsec_unlock(exceptions);
 
 	return result;
@@ -387,7 +391,7 @@ TEE_Result stm32_bsec_permanent_lock_otp(uint32_t otp_id)
 
 	result = power_up_safmem();
 	if (result)
-		return result;
+		goto out;
 
 	io_write32(base + BSEC_OTP_WRDATA_OFF, data);
 	io_write32(base + BSEC_OTP_CTRL_OFF, addr | BSEC_WRITE | BSEC_LOCK);
@@ -397,13 +401,16 @@ TEE_Result stm32_bsec_permanent_lock_otp(uint32_t otp_id)
 		if (!(bsec_status() & BSEC_MODE_BUSY_MASK))
 			break;
 
-	if (bsec_status() & (BSEC_MODE_BUSY_MASK | BSEC_MODE_PROGFAIL_MASK))
+	if (bsec_status() & BSEC_MODE_BUSY_MASK)
+		result = TEE_ERROR_BUSY;
+	else if (bsec_status() & BSEC_MODE_PROGFAIL_MASK)
 		result = TEE_ERROR_BAD_PARAMETERS;
 	else
 		result = check_no_error(otp_id, false /* not-disturbed */);
 
 	power_down_safmem();
 
+out:
 	bsec_unlock(exceptions);
 
 	return result;
@@ -665,4 +672,4 @@ static TEE_Result initialize_bsec(void)
 	return TEE_SUCCESS;
 }
 
-driver_init(initialize_bsec);
+early_init(initialize_bsec);

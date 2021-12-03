@@ -33,14 +33,18 @@
 
 #include <drivers/gic.h>
 #include <drivers/cdns_uart.h>
+#include <drivers/zynqmp_csu.h>
 
 #include <arm.h>
 #include <console.h>
+#include <io.h>
 #include <kernel/boot.h>
 #include <kernel/interrupt.h>
 #include <kernel/misc.h>
+#include <kernel/tee_common_otp.h>
 #include <kernel/tee_time.h>
 #include <mm/core_memprot.h>
+#include <tee/tee_fs.h>
 #include <trace.h>
 
 static struct gic_data gic_data;
@@ -57,6 +61,13 @@ register_phys_mem_pgdir(MEM_AREA_IO_SEC,
 register_phys_mem_pgdir(MEM_AREA_IO_SEC,
 			ROUNDDOWN(GIC_BASE + GICD_OFFSET, CORE_MMU_PGDIR_SIZE),
 			CORE_MMU_PGDIR_SIZE);
+#if defined(CFG_ZYNQMP_CSU)
+register_phys_mem_pgdir(MEM_AREA_IO_SEC, CSU_BASE, CSU_SIZE);
+#endif
+
+#ifdef DRAM0_BASE
+register_ddr(DRAM0_BASE, DRAM0_SIZE);
+#endif
 
 void main_init_gic(void)
 {
@@ -81,3 +92,25 @@ void console_init(void)
 		       CONSOLE_UART_CLK_IN_HZ, CONSOLE_BAUDRATE);
 	register_serial_console(&console_data.chip);
 }
+
+#if defined(CFG_RPMB_FS)
+bool plat_rpmb_key_is_ready(void)
+{
+	vaddr_t csu = core_mmu_get_va(CSU_BASE, MEM_AREA_IO_SEC, CSU_SIZE);
+	struct tee_hw_unique_key hwkey = { };
+	uint32_t status = 0;
+
+	if (tee_otp_get_hw_unique_key(&hwkey))
+		return false;
+
+	/*
+	 * For security reasons, we don't allow writing the RPMB key using the
+	 * development HUK even though it is unique.
+	 */
+	status = io_read32(csu + ZYNQMP_CSU_STATUS_OFFSET);
+	if (status & ZYNQMP_CSU_STATUS_AUTH)
+		return true;
+
+	return false;
+}
+#endif

@@ -29,8 +29,20 @@ ifeq ($(shell test $(CFG_STACK_TMP_EXTRA) -lt 8192; echo $$?), 0)
 $(error Error: SE050 requires CFG_STACK_TMP_EXTRA at least 8192)
 endif
 
-# SE05X Unique Key Identifier
-CFG_NXP_SE05X_HUK_DRV ?= y
+# SE05X Die Identifier
+CFG_NXP_SE05X_DIEID_DRV ?= y
+
+# Allow a secure client to enable the SCP03 session
+CFG_NXP_SE05X_SCP03_DRV ?= y
+ifeq ($(CFG_NXP_SE05X_SCP03_DRV),y)
+$(call force,CFG_SCP03_PTA,y,Mandated by CFG_NXP_SE05X_SCP03)
+endif
+
+# Allow a secure client to send APDU raw frames
+CFG_NXP_SE05X_APDU_DRV ?= y
+ifeq ($(CFG_NXP_SE05X_APDU_DRV),y)
+$(call force,CFG_APDU_PTA,y,Mandated by CFG_NXP_SE05X_APDU)
+endif
 
 # Random Number Generator
 CFG_NXP_SE05X_RNG_DRV ?= y

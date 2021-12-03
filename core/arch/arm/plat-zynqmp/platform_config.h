@@ -32,7 +32,8 @@
 #include <mm/generic_ram_layout.h>
 
 /* Make stacks aligned to data cache line length */
-#define STACK_ALIGNMENT		64
+#define CACHELINE_LEN		64
+#define STACK_ALIGNMENT		CACHELINE_LEN
 
 #ifdef CFG_WITH_PAGER
 #error "Pager not supported for zynqmp"
@@ -85,6 +86,11 @@
 #else
 #error "Unknown platform flavor"
 #endif
+
+#define CSUDMA_BASE		0xFFC80000
+#define CSUDMA_SIZE		0x1000
+#define CSU_BASE		0xFFCA0000
+#define CSU_SIZE		0x5038
 
 #ifdef CFG_TEE_LOAD_ADDR
 #define TEE_LOAD_ADDR			CFG_TEE_LOAD_ADDR

@@ -648,6 +648,10 @@ endif
 # Enables backwards compatible derivation of RPMB and SSK keys
 CFG_CORE_HUK_SUBKEY_COMPAT ?= y
 
+# Use SoC specific tee_otp_get_die_id() implementation for SSK key generation.
+# This option depends on CFG_CORE_HUK_SUBKEY_COMPAT=y.
+CFG_CORE_HUK_SUBKEY_COMPAT_USE_OTP_DIE_ID ?= n
+
 # Compress and encode conf.mk into the TEE core, and show the encoded string on
 # boot (with severity TRACE_INFO).
 CFG_SHOW_CONF_ON_BOOT ?= n
@@ -713,3 +717,28 @@ ifeq ($(CFG_WITH_PAGER),y)
 CFG_PREALLOC_RPC_CACHE ?= n
 endif
 CFG_PREALLOC_RPC_CACHE ?= y
+
+# When enabled, CFG_DRIVERS_CLK embeds a clock framework in OP-TEE core.
+# This clock framework allows to describe clock tree and provides functions to
+# get and configure the clocks.
+# CFG_DRIVERS_CLK_DT embeds devicetree clock parsing support
+# CFG_DRIVERS_CLK_FIXED add support for "fixed-clock" compatible clocks
+CFG_DRIVERS_CLK ?= n
+CFG_DRIVERS_CLK_DT ?= $(call cfg-all-enabled,CFG_DRIVERS_CLK CFG_DT)
+CFG_DRIVERS_CLK_FIXED ?= $(CFG_DRIVERS_CLK_DT)
+
+# The purpose of this flag is to show a print when booting up the device that
+# indicates whether the board runs a standard developer configuration or not.
+# A developer configuration doesn't necessarily has to be secure. The intention
+# is that the one making products based on OP-TEE should override this flag in
+# plat-xxx/conf.mk for the platform they're basing their products on after
+# they've finalized implementing stubbed functionality (see OP-TEE
+# documentation/Porting guidelines) as well as vendor specific security
+# configuration.
+CFG_WARN_INSECURE ?= y
+
+$(eval $(call cfg-depends-all,CFG_DRIVERS_CLK_DT,CFG_DRIVERS_CLK CFG_DT))
+$(eval $(call cfg-depends-all,CFG_DRIVERS_CLK_FIXED,CFG_DRIVERS_CLK_DT))
+
+# Enables warnings for declarations mixed with statements
+CFG_WARN_DECL_AFTER_STATEMENT ?= y

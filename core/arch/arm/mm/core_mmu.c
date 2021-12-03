@@ -916,6 +916,25 @@ static bool assign_mem_va(vaddr_t tee_ram_va,
 	vaddr_t va = tee_ram_va;
 	bool va_is_secure = true;
 
+	/*
+	 * Check that we're not overlapping with the user VA range.
+	 */
+	if (IS_ENABLED(CFG_WITH_LPAE)) {
+		/*
+		 * User VA range is supposed to be defined after these
+		 * mappings have been established.
+		 */
+		assert(!core_mmu_user_va_range_is_defined());
+	} else {
+		vaddr_t user_va_base = 0;
+		size_t user_va_size = 0;
+
+		assert(core_mmu_user_va_range_is_defined());
+		core_mmu_get_user_va_range(&user_va_base, &user_va_size);
+		if (tee_ram_va < (user_va_base + user_va_size))
+			return false;
+	}
+
 	/* Clear eventual previous assignments */
 	for (map = memory_map; !core_mmap_is_end_of_table(map); map++)
 		map->va = 0;
@@ -2444,7 +2463,7 @@ void core_mmu_init_ta_ram(void)
 	vaddr_t s = 0;
 	vaddr_t e = 0;
 	paddr_t ps = 0;
-	paddr_t pe = 0;
+	size_t size = 0;
 
 	/*
 	 * Get virtual addr/size of RAM where TA are loaded/executedNSec
@@ -2456,14 +2475,14 @@ void core_mmu_init_ta_ram(void)
 		core_mmu_get_mem_by_type(MEM_AREA_TA_RAM, &s, &e);
 
 	ps = virt_to_phys((void *)s);
-	pe = virt_to_phys((void *)(e - 1)) + 1;
+	size = e - s;
 
 	if (!ps || (ps & CORE_MMU_USER_CODE_MASK) ||
-	    !pe || (pe & CORE_MMU_USER_CODE_MASK))
+	    !size || (size & CORE_MMU_USER_CODE_MASK))
 		panic("invalid TA RAM");
 
 	/* extra check: we could rely on core_mmu_get_mem_by_type() */
-	if (!tee_pbuf_is_sec(ps, pe - ps))
+	if (!tee_pbuf_is_sec(ps, size))
 		panic("TA RAM is not secure");
 
 	if (!tee_mm_is_empty(&tee_mm_sec_ddr))
@@ -2471,6 +2490,6 @@ void core_mmu_init_ta_ram(void)
 
 	/* remove previous config and init TA ddr memory pool */
 	tee_mm_final(&tee_mm_sec_ddr);
-	tee_mm_init(&tee_mm_sec_ddr, ps, pe, CORE_MMU_USER_CODE_SHIFT,
+	tee_mm_init(&tee_mm_sec_ddr, ps, size, CORE_MMU_USER_CODE_SHIFT,
 		    TEE_MM_POOL_NO_FLAGS);
 }

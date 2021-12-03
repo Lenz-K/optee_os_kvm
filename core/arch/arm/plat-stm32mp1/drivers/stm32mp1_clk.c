@@ -387,6 +387,12 @@ static const struct stm32mp1_clk_gate stm32mp1_clk_gate[] = {
 };
 DECLARE_KEEP_PAGER(stm32mp1_clk_gate);
 
+const uint8_t stm32mp1_clk_on[] = {
+	CK_HSE, CK_CSI, CK_LSI, CK_LSE, CK_HSI, CK_HSE_DIV2,
+	PLL1_P, PLL1_Q, PLL1_R, PLL2_P, PLL2_Q, PLL2_R, PLL3_P, PLL3_Q, PLL3_R,
+	CK_AXI, CK_MPU, CK_MCU,
+};
+
 /* Parents for secure aware clocks in the xxxSELR value ordering */
 static const uint8_t stgen_parents[] = {
 	_HSI_KER, _HSE_KER
@@ -555,11 +561,6 @@ static unsigned int refcount_lock;
 static const struct stm32mp1_clk_gate *gate_ref(unsigned int idx)
 {
 	return &stm32mp1_clk_gate[idx];
-}
-
-static bool gate_is_non_secure(const struct stm32mp1_clk_gate *gate)
-{
-	return gate->secure == N_S || !stm32_rcc_is_secure();
 }
 
 static const struct stm32mp1_clk_sel *clk_sel_ref(unsigned int idx)
@@ -905,7 +906,14 @@ static unsigned long get_clock_rate(int p)
 	return clock;
 }
 
-static void __clk_enable(struct stm32mp1_clk_gate const *gate)
+static bool __clk_is_enabled(const struct stm32mp1_clk_gate *gate)
+{
+	vaddr_t base = stm32_rcc_base();
+
+	return io_read32(base + gate->offset) & BIT(gate->bit);
+}
+
+static void __clk_enable(const struct stm32mp1_clk_gate *gate)
 {
 	vaddr_t base = stm32_rcc_base();
 	uint32_t bit = BIT(gate->bit);
@@ -918,7 +926,7 @@ static void __clk_enable(struct stm32mp1_clk_gate const *gate)
 	FMSG("Clock %u has been enabled", gate->clock_id);
 }
 
-static void __clk_disable(struct stm32mp1_clk_gate const *gate)
+static void __clk_disable(const struct stm32mp1_clk_gate *gate)
 {
 	vaddr_t base = stm32_rcc_base();
 	uint32_t bit = BIT(gate->bit);
@@ -931,41 +939,20 @@ static void __clk_disable(struct stm32mp1_clk_gate const *gate)
 	FMSG("Clock %u has been disabled", gate->clock_id);
 }
 
-static bool __clk_is_enabled(struct stm32mp1_clk_gate const *gate)
-{
-	vaddr_t base = stm32_rcc_base();
-
-	return io_read32(base + gate->offset) & BIT(gate->bit);
-}
-
 static bool clock_is_always_on(unsigned long id)
 {
-	COMPILE_TIME_ASSERT(CK_HSE == 0 &&
-			    (CK_HSE + 1) == CK_CSI &&
-			    (CK_HSE + 2) == CK_LSI &&
-			    (CK_HSE + 3) == CK_LSE &&
-			    (CK_HSE + 4) == CK_HSI &&
-			    (CK_HSE + 5) == CK_HSE_DIV2 &&
-			    (PLL1_P + 1) == PLL1_Q &&
-			    (PLL1_P + 2) == PLL1_R &&
-			    (PLL1_P + 3) == PLL2_P &&
-			    (PLL1_P + 4) == PLL2_Q &&
-			    (PLL1_P + 5) == PLL2_R &&
-			    (PLL1_P + 6) == PLL3_P &&
-			    (PLL1_P + 7) == PLL3_Q &&
-			    (PLL1_P + 8) == PLL3_R);
+	size_t n = 0;
 
-	if (id <= CK_HSE_DIV2 || (id >= PLL1_P && id <= PLL3_R))
-		return true;
+	for (n = 0; n < ARRAY_SIZE(stm32mp1_clk_on); n++)
+		if (stm32mp1_clk_on[n] == id)
+			return true;
 
-	switch (id) {
-	case CK_AXI:
-	case CK_MPU:
-	case CK_MCU:
-		return true;
-	default:
-		return false;
-	}
+	return false;
+}
+
+static bool gate_is_non_secure(const struct stm32mp1_clk_gate *gate)
+{
+	return gate->secure == N_S || !stm32_rcc_is_secure();
 }
 
 bool stm32_clock_is_enabled(unsigned long id)
@@ -1289,7 +1276,7 @@ static void get_osc_freq_from_dt(const void *fdt)
 static void enable_static_secure_clocks(void)
 {
 	unsigned int idx = 0;
-	static const unsigned long secure_enable[] = {
+	const unsigned long secure_enable[] = {
 		DDRC1, DDRC1LP, DDRC2, DDRC2LP, DDRPHYC, DDRPHYCLP, DDRCAPB,
 		AXIDCG, DDRPHYCAPB, DDRPHYCAPBLP, TZPC, TZC1, TZC2, STGEN_K,
 		BSEC,
@@ -1315,7 +1302,7 @@ static void disable_rcc_tzen(void)
 	io_clrbits32(stm32_rcc_base() + RCC_TZCR, RCC_TZCR_TZEN);
 }
 
-static TEE_Result stm32mp1_clk_init(const void *fdt, int node)
+static TEE_Result stm32mp1_clk_fdt_init(const void *fdt, int node)
 {
 	unsigned int i = 0;
 	int len = 0;
@@ -1392,9 +1379,11 @@ static TEE_Result stm32mp1_clk_early_init(void)
 		enable_rcc_tzen();
 	}
 
-	res = stm32mp1_clk_init(fdt, node);
-	if (res)
-		return res;
+	res = stm32mp1_clk_fdt_init(fdt, node);
+	if (res) {
+		DMSG("Clock init from DTB failed: %#"PRIx32, res);
+		panic();
+	}
 
 	enable_static_secure_clocks();
 
