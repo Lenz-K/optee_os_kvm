@@ -17,5 +17,7 @@ Also install the AOSP Repo tool. Instructions can be found [here](https://source
 
 ## Building
 
-To download the necessary sources and build OP-TEE, it is recommended to create a script with the contents of [build_for_kvm.sh](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/build_for_kvm.sh) and place it in a directory of your choice and execute it. The script will download several repositories includng this one (They are defined in [kvm.xml](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/kvm.xml)). It will then start the make process using the makefile [kvm.mk](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/kvm.mk). The script contains a variable `JOBS` that defines the amount of jobs in several steps of the build process.
+To download the necessary sources and build OP-TEE, it is recommended to create a script with the contents of [build_for_kvm.sh](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/build_for_kvm.sh) and place it in a directory of your choice and execute it. The script will download several repositories including this one (They are defined in [kvm.xml](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/kvm.xml)). It will then start the make process using the makefile [kvm.mk](https://github.com/Lenz-K/optee_os_kvm/blob/plat-kvm/kvm.mk). The script contains a variable `JOBS` that defines the amount of jobs in several steps of the build process.
+
+The ELF file containing OP-TEE OS and the trusted applications can be faund at `./optee_os/out/arm/core/tee.elf`
 
