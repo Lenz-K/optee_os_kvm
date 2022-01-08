@@ -24,6 +24,7 @@ The folder tee-vm contains the source code of a program that sets up a VM and ru
 - To build the program run `make` in the folder `tee-vm`.
 - To then execute the program use `./tee_vm`.
 
+## Cross-compiling
 For cross-compilation set the variable `CC` to the location of the compiler for the target architecture, before running `make`.
 
 _Note: When the executable is then copied to the target, the ELF file needs to be copied there as well (into the subfolder `./bin` relative to the executable)._
