@@ -227,7 +227,7 @@ void close_vm(void) {
     // So far the mapped memory is only freed on the termination of the process
 }
 
-static int run_vm(void) {
+int run_vm(void) {
     //printf("\n--- KVM_RUN ---\n");
     int ret = ioctl(vcpufd, KVM_RUN, NULL);
     if (ret < 0) {
@@ -265,7 +265,7 @@ static int run_vm(void) {
     return ret;
 }
 
-static int start_vm(const char *elf_name) {
+int start_vm(const char *elf_name) {
     int ret;
     uint64_t *mem;
     size_t mmap_size;
